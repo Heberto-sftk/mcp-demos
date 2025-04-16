@@ -2,7 +2,8 @@ import asyncio
 import shutil
 import os
 from agents import Agent, OpenAIChatCompletionsModel, Runner, trace
-from agents.mcp import MCPServer, MCPServerStdio
+from agents.mcp import MCPServer, MCPServerSse
+from agents.mcp import MCPServerSseParams
 from dotenv import load_dotenv
 from openai import AsyncAzureOpenAI
 load_dotenv()
@@ -42,11 +43,11 @@ async def run(mcp_server: MCPServer, user_input: str):
     print(final_output)
 
 async def main():
-    user_input = input("I am an MCP agent that connects to a firestore databse, how can i help you? ")
-                
-    async with MCPServerStdio(
-        cache_tools_list=True,  # Cache the tools list, for demonstration
-        params={"command": "python", "args": ["mcpdemo.py"]},
+    user_input = input("I am an MCP agent that connects to a firestore database, how can i help you? ")
+    
+    
+    async with MCPServerSse(
+        MCPServerSseParams(url="http://localhost:3000/sse")
     ) as server:
         with trace(workflow_name="MCP Example"):
             await run(server, user_input)
