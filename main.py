@@ -3,8 +3,8 @@ from fastapi import FastAPI
 import functions
 
 app = FastAPI(
-    title="Prompt Registry API",
-    description="API for managing prompts and versions in a prompt registry.",
+    title="MCP Agent API",
+    description="API for accesing an assistant agent for MCPs.",
     version="0.1.0",
 )
 

@@ -40,13 +40,22 @@ async def run(mcp_server: MCPServer, user_input: str):
     print(final_output)
     return str(final_output)
 
-@router.post("/test-mcp", description="Test a prompt with the gpt-4o-mini model.")
-async def test_prompt_gpt_4o_mini(
-    user_input: str
+@router.post("/mcp-agent", description="Send user input to an agent that uses a specific MCP server.")
+async def mcp_agent(
+    user_input: str,
+    mcp_link: str
 ) :
+    """
+    Endpoint to send user input to an agent that uses a specific MCP server.
+    Args:
+        user_input (str): The user input to be processed by the agent.
+        mcp_link (str): The link to the MCP server.
+    Returns:
+        str: The response from the agent.
+    """
     try:
         async with MCPServerSse(
-            MCPServerSseParams(url="http://localhost:3000/sse")
+            MCPServerSseParams(url=mcp_link)
         ) as server:
             with trace(workflow_name="MCP Example"):
                 result = await run(server, user_input)
