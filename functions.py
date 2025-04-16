@@ -11,7 +11,7 @@ import os
 router = APIRouter()
 
 
-async def run(mcp_server: MCPServer, user_input: str):
+async def run(mcp_servers: list[MCPServer], user_input: str):
     client = AsyncAzureOpenAI(
         api_key=os.environ["AZURE_OPENAI_KEY"],
         api_version=os.environ["AZURE_OPENAI_VERSION"],
@@ -20,15 +20,19 @@ async def run(mcp_server: MCPServer, user_input: str):
     
     agent = Agent(
         name="MCP Assistant",
-        instructions=
-        (
-            "You are a useful firestore assistant, answer the users queries and do what the user asks of you. Use the provided tools if necessary"
+        instructions=(
+            "You are a capable MCP assistant with access to multiple tool-enabled MCP servers."  
+            "Your role is to understand user requests, reason through available options, and use tools, prompts, or resources as needed to fulfill the user's intent."
+            "Fulfill all of the users requests to the best of your ability."  
+            "If the request can be best addressed through a tool or external resource, use it. " 
+            "If not, provide a direct and helpful answer based on your own capabilities."  
+            "Always strive to be efficient, precise, and helpful."  
         ),
         model=OpenAIChatCompletionsModel(
             model=os.environ["AZURE_OPENAI_DEPLOYMENT_4O_MINI"],
             openai_client=client,
         ),
-        mcp_servers=[mcp_server],
+        mcp_servers=mcp_servers,
     )
     
     print("\n" + "-" * 40)
@@ -40,27 +44,38 @@ async def run(mcp_server: MCPServer, user_input: str):
     print(final_output)
     return str(final_output)
 
-@router.post("/mcp-agent", description="Send user input to an agent that uses a specific MCP server.")
+@router.post("/mcp-agent", description="Send user input to an agent that uses multiple MCP servers.")
 async def mcp_agent(
     user_input: str,
-    mcp_link: str
-) :
+    mcp_links: list[str]  # acepta una lista de URLs
+):
     """
-    Endpoint to send user input to an agent that uses a specific MCP server.
+    Endpoint to send user input to an agent that uses multiple MCP servers.
     Args:
         user_input (str): The user input to be processed by the agent.
-        mcp_link (str): The link to the MCP server.
+        mcp_links (List[str]): A list of MCP server URLs.
     Returns:
         str: The response from the agent.
     """
+    servers = []
+
     try:
-        async with MCPServerSse(
-            MCPServerSseParams(url=mcp_link)
-        ) as server:
-            with trace(workflow_name="MCP Example"):
-                result = await run(server, user_input)
-                await server.cleanup()
+        # Abrimos todas las conexiones SSE a los servidores MCP
+        for link in mcp_links:
+            server = MCPServerSse(MCPServerSseParams(url=link))
+            await server.__aenter__()
+            servers.append(server)
+
+        with trace(workflow_name="MCP Multiple Servers Example"):
+            result = await run(servers, user_input)
+
+        # Cleanup de todos los servidores
+        for server in servers:
+            await server.cleanup()
+            await server.__aexit__(None, None, None)
+
         return result
+
     except Exception as e:
         logging.error(f"Error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
