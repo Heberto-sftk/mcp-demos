@@ -38,9 +38,21 @@ mcp run <file_name>
 mcp dev <file_name>
 ```
 
+#### 🛠 Connection Mode
+
+```bash
+python <file_name>
+```
+
 Replace `<file_name>` with the appropriate script or module name you want to run.
 
 ---
+
+### 4 Run the fasstapi connection
+
+```bash
+func host start
+```
 
 ## 📁 Project Structure
 
